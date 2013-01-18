@@ -31,57 +31,32 @@
  * ***** END LICENSE BLOCK ***** */
 package org.crsh.guice;
 
-import java.io.IOException;
-import java.net.Proxy;
-import java.net.URL;
-
-import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.crsh.telnet.TelnetPlugin;
-import org.hamcrest.core.IsNull;
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.jboss.shrinkwrap.resolver.api.maven.ScopeType;
 import org.jboss.shrinkwrap.resolver.api.maven.coordinate.MavenDependencies;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import sun.net.www.protocol.http.HttpURLConnection;
 
 import com.google.inject.servlet.GuiceServletContextListener;
 
-@RunWith(Arquillian.class)
-public class IntegrationTest {
+public class GuiceTestWebAppArchive {
 
-	@Test
-	@RunAsClient
-	public void testSimpleGet(@ArquillianResource URL baseURL) throws IOException {
-		HttpURLConnection httpURLConnection = new HttpURLConnection(new URL(baseURL.toExternalForm() + "?howHigh=5"), Proxy.NO_PROXY);
-		httpURLConnection.connect();
-		Object content = httpURLConnection.getContent();
-		Assert.assertThat(content, IsNull.notNullValue());
+	public static WebArchive buildInstance() {
+		WebArchive archive = ShrinkWrap.create(WebArchive.class)
+				.addClass(GuiceApplication.class)
+				.addClass(SampleService.class)
+				.addClass(SampleServlet.class)
+				.addClass(CrashGuiceSupport.class)
+				.addClass(CrashGuiceSupport.InjectorHolder.class)
+				.addClass(GuiceServletContextListener.class)
+				.addClass(TelnetPlugin.class)
+				.addAsLibraries(Maven.resolver().addDependencies(
+						MavenDependencies.createDependency("org.crsh:crsh.shell.core:1.2.0-cr6-SNAPSHOT", ScopeType.COMPILE, false))
+						.resolve().withTransitivity().asFile())
+				.addAsDirectories("/crash/commands")
+				.setWebXML(GuiceTestWebAppArchive.class.getResource("web.xml"));
+		return archive;
 	}
 	
-	@Deployment
-	public static WebArchive createDeployment() {
-        WebArchive archive = ShrinkWrap.create(WebArchive.class)
-            .addClass(GuiceApplication.class)
-            .addClass(SampleService.class)
-            .addClass(SampleServlet.class)
-            .addClass(CrashGuiceSupport.class)
-            .addClass(CrashGuiceSupport.InjectorHolder.class)
-            .addClass(GuiceServletContextListener.class)
-            .addClass(TelnetPlugin.class)
-            .addAsLibraries(Maven.resolver().addDependencies(
-            		MavenDependencies.createDependency("org.crsh:crsh.shell.core:1.2.0-cr4-SNAPSHOT", ScopeType.COMPILE, false))
-            		.resolve().withTransitivity().asFile())
-        	.setWebXML(IntegrationTest.class.getResource("web.xml"));
-        System.out.println(archive.toString(true));
-        return archive;
-    }
 }

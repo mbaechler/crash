@@ -31,16 +31,36 @@
  * ***** END LICENSE BLOCK ***** */
 package org.crsh.guice;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.inject.servlet.ServletModule;
+import java.io.IOException;
+import java.net.Proxy;
+import java.net.URL;
 
-public class GuiceApplication extends ServletModule {
-	
-	@Override
-	protected void configureServlets() {
-		super.configureServlets();
-		install(new CrashGuiceSupport(ImmutableMap.of("telnet.port", "4444")));
-		serve("/").with(SampleServlet.class);
+import org.hamcrest.core.IsNull;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import sun.net.www.protocol.http.HttpURLConnection;
+
+@RunWith(Arquillian.class)
+public class TestArquillianServlet {
+
+	@Test
+	@RunAsClient
+	public void testSimpleGet(@ArquillianResource URL baseURL) throws IOException {
+		HttpURLConnection httpURLConnection = new HttpURLConnection(new URL(baseURL.toExternalForm() + "?howHigh=5"), Proxy.NO_PROXY);
+		httpURLConnection.connect();
+		Object content = httpURLConnection.getContent();
+		Assert.assertThat(content, IsNull.notNullValue());
 	}
-	
+
+	@Deployment
+	public static WebArchive createDeployment() {
+		return GuiceTestWebAppArchive.buildInstance();
+	}
 }
